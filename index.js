@@ -1,8 +1,29 @@
-const e = require('express')
+
 const express = require('express')
+const morgan = require('morgan')
 const app = express()
+const requestLogger = (request, response, next) => {
+  console.log('Method:', request.method)
+  console.log('Path:  ', request.path)
+  console.log('Body:  ', request.body)
+  console.log('---')
+  next()
+}
+
+morgan.token('content', (req, res) => { 
+  if (req.method === 'GET') {
+  return console.log(res.on('data', (chunk) => {
+    console.log(`BODY: ${chunk}`);
+  }))
+  }
+})
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
 
 app.use(express.json())
+app.use(morgan('combined'))
 
 let persons = [
     { 
@@ -93,6 +114,8 @@ app.post('/api/persons', (req, res) => {
   res.json(persons)
   }
 })
+
+app.use(unknownEndpoint)
 
 const PORT = 3001
 app.listen(PORT, () => {
