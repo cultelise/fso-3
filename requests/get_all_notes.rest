@@ -1,1 +1,1 @@
-GET http://localhost:3001/api/notes
+GET http://fso-test.flr.dev/api/notes
