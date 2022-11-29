@@ -1,24 +1,14 @@
+require('dotenv').config
 const express = require('express');
-const app = express();
 const cors = require('cors');
-const mongoose = require('mongoose');
+const app = express();
+
+const Note = require('./models/note')
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('build'));
 
-// DO NOT SAVE YOUR PASSWORD TO GITHUB!!
-const url = `mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority`;
-
-mongoose.connect(url);
-
-const noteSchema = new mongoose.Schema({
-  content: String,
-  date: Date,
-  important: Boolean,
-});
-
-const Note = mongoose.model('Note', noteSchema);
 
 let notes = [
   {
@@ -196,7 +186,7 @@ app.delete('/api/notes/:id', (request, response) => {
   response.status(204).end();
 });
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
