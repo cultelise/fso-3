@@ -1,10 +1,24 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const mongoose = require('mongoose');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('build'));
+
+// DO NOT SAVE YOUR PASSWORD TO GITHUB!!
+const url = `mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority`;
+
+mongoose.connect(url);
+
+const noteSchema = new mongoose.Schema({
+  content: String,
+  date: Date,
+  important: Boolean,
+});
+
+const Note = mongoose.model('Note', noteSchema);
 
 let notes = [
   {
@@ -96,7 +110,7 @@ const getRandomPhone = () => {
 };
 
 app.post('/api/persons', (req, res) => {
-  const body = req.body
+  const body = req.body;
 
   const person = {
     id: persons.length + 1,
@@ -123,14 +137,18 @@ app.get('/hello', (request, response) => {
 });
 
 app.get('/api/notes', (request, response) => {
-  response.json(notes);
+  Note.find({}).then((notes) => {
+    response.json(notes);
+  });
 });
 
 app.get('/api/notes/:id', (request, response) => {
   const id = Number(request.params.id);
   const note = notes.find((note) => note.id === id);
   if (note) {
-    response.json(note);
+    Note.find({}).then((notes) => {
+      response.json(notes);
+    });
   } else {
     response.status(404).end();
   }
@@ -163,14 +181,14 @@ app.post('/api/notes', (req, res) => {
 
 app.put('api/notes/:id', (req, res) => {
   const body = req.body;
-  console.log(body)
-})
+  console.log(body);
+});
 
 app.put('api/persons/:id', (req, res) => {
   const body = req.body;
-  console.log(res.body)
-  console.log(body)
-})
+  console.log(res.body);
+  console.log(body);
+});
 
 app.delete('/api/notes/:id', (request, response) => {
   const id = Number(request.params.id);
@@ -178,7 +196,7 @@ app.delete('/api/notes/:id', (request, response) => {
   response.status(204).end();
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3003;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
