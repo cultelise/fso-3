@@ -1,1 +1,1 @@
-GET http://mreh.fly.dev/api/notes
+GET http://localhost:3001/api/notes
