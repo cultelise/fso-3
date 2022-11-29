@@ -1,1 +1,1 @@
-GET http://fso-test.flr.dev/api/notes
+GET http://mreh.fly.dev/api/notes
