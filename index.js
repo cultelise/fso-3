@@ -10,48 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('build'));
 
-// let notes = [
-//   {
-//     id: 1,
-//     content: 'HTML is easy',
-//     date: '2022-05-30T17:30:31.098Z',
-//     important: true,
-//   },
-//   {
-//     id: 2,
-//     content: 'Browser can execute only Javascript',
-//     date: '2022-05-30T18:39:34.091Z',
-//     important: false,
-//   },
-//   {
-//     id: 3,
-//     content: 'GET and POST are the most important methods of HTTP protocol',
-//     date: '2022-05-30T19:20:14.298Z',
-//     important: true,
-//   },
-// ];
-// let persons = [
-//   {
-//     id: 1,
-//     name: 'Arto Hellas',
-//     number: '040-123456',
-//   },
-//   {
-//     id: 2,
-//     name: 'Ada Lovelace',
-//     number: '39-44-5323523',
-//   },
-//   {
-//     id: 3,
-//     name: 'Dan Abramov',
-//     number: '12-43-234345',
-//   },
-//   {
-//     id: 4,
-//     name: 'Mary Poppendieck',
-//     number: '39-23-6423122',
-//   },
-// ];
 
 app.get('/api/persons', (req, res) => {
   Contact.find({}).then((contact) => {
@@ -59,16 +17,15 @@ app.get('/api/persons', (req, res) => {
   });
 });
 
-// app.get('/info', (req, res) => {
-//   app.get('/api/persons', (req, res) => {
-//     Contact.find({}).then((contact) => {
-//       res.send(
-//         `<h3>Phonebook has info for ${contact.length} people.</h3>
-//        <p>${new Date()}</p>`
-//       );
-//     });
-//   });
-// });
+app.get('/info', (req, res) => {
+    Contact.find({}).then((contact) => {
+      console.log(contact)
+      res.send(
+        `<h3>Phonebook has info for ${contact.length} people.</h3>
+       <p>${new Date()}</p>`
+      );
+  });
+});
 
 app.get('/api/persons/:id', (req, res, next) => {
   Contact.findById(req.params.id)
@@ -208,7 +165,9 @@ app.put('/api/persons/:id', (req, res, next) => {
     name: body.name,
     phone: body.phone
   }
-
+  if (body.phone !== Number) {
+    throw new Error('Number must consist only of numerals.')
+  }
   Contact.findByIdAndUpdate(req.params.id, contact, { new: true})
     .then(updatedContact => {
       console.log(updatedContact)

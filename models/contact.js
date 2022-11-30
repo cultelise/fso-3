@@ -16,7 +16,7 @@ mongoose
 
 const contactSchema = new mongoose.Schema({
   name: String,
-  phone: Number,
+  phone: String,
   date: Date,
   important: Boolean,
 });
