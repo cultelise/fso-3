@@ -5,7 +5,6 @@ const app = express();
 
 const Note = require('./models/note');
 const Contact = require('./models/contact');
-const { response } = require('express');
 
 app.use(cors());
 app.use(express.json());
@@ -60,48 +59,56 @@ app.get('/api/persons', (req, res) => {
   });
 });
 
-app.get('/info', (req, res) => {
-  res.send(
-    `<h3>Phonebook has info for ${persons.length} people.</h3>
-   <p>${new Date()}</p>`
-  );
-});
+// app.get('/info', (req, res) => {
+//   app.get('/api/persons', (req, res) => {
+//     Contact.find({}).then((contact) => {
+//       res.send(
+//         `<h3>Phonebook has info for ${contact.length} people.</h3>
+//        <p>${new Date()}</p>`
+//       );
+//     });
+//   });
+// });
 
-app.get('/api/persons/:id', (req, res) => {
-  Contact.findById(req.params.id).then((contact) => {
-    res.json(contact);
-  });
-
-  if (!person) {
-    res.status(404).end();
-  } else res.json(person);
+app.get('/api/persons/:id', (req, res, next) => {
+  Contact.findById(req.params.id)
+    .then((contact) => {
+      if (contact) {
+        res.json(contact);
+      } else res.status(404).end();
+    })
+    .catch((error) => next(error));
 });
 
 app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  persons = persons.filter((person) => person.id !== id);
-  return res.json(persons);
+  Contact.findByIdAndRemove(req.params.id).then((contact) => {
+    console.log(`${contact.name} deleted.`);
+    res.status(204).end();
+    // Contact.find({}).then((contact) => {
+    //   res.json(contact);
+    // });
+  });
 });
 
-const getRandomId = () => {
-  return Math.floor(Math.random() * 10000);
-};
+// const getRandomId = () => {
+//   return Math.floor(Math.random() * 10000);
+// };
 
-const getRandomLetter = () => {
-  const randomNum = Math.floor(Math.random() * 10);
-  return 'bonsjoidphuas'[randomNum];
-};
+// const getRandomLetter = () => {
+//   const randomNum = Math.floor(Math.random() * 10);
+//   return 'bonsjoidphuas'[randomNum];
+// };
 
-const getRandomPhone = () => {
-  let phoneNumber = '';
-  for (i = 0; i < 10; i++) {
-    phoneNumber += Math.floor(Math.random() * 10).toString();
-    if (i === 2 || i === 5) {
-      [(phoneNumber += '-')];
-    }
-  }
-  return phoneNumber;
-};
+// const getRandomPhone = () => {
+//   let phoneNumber = '';
+//   for (i = 0; i < 10; i++) {
+//     phoneNumber += Math.floor(Math.random() * 10).toString();
+//     if (i === 2 || i === 5) {
+//       [(phoneNumber += '-')];
+//     }
+//   }
+//   return phoneNumber;
+// };
 
 app.post('/api/persons', (req, res) => {
   const body = req.body;
@@ -112,6 +119,7 @@ app.post('/api/persons', (req, res) => {
     date: new Date(),
     important: true,
   });
+
   contact
     .save()
     .then((savedContact) => {
@@ -145,20 +153,17 @@ app.get('/api/notes', (req, res) => {
   });
 });
 
-app.get('/api/notes/:id', (req, res) => {
-  Note.findById(req.params.id).then((note) => {
-    if (note) {
+app.get('/api/notes/:id', (req, res, next) => {
+  Note.findById(req.params.id)
+    .then((note) => {
+      if (note) {
         res.json(note);
       } else {
-      res.status(404).end();
-    }
-  });
+        res.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
 });
-
-const generateId = () => {
-  const maxId = notes.length > 0 ? Math.max(...notes.map((n) => n.id)) : 0;
-  return maxId;
-};
 
 app.post('/api/notes', (req, res) => {
   const body = req.body;
@@ -179,22 +184,62 @@ app.post('/api/notes', (req, res) => {
   });
 });
 
-app.put('api/notes/:id', (req, res) => {
+app.put('/api/notes/:id', (req, res, next) => {
   const body = req.body;
-  console.log(body);
+  console.log(body)
+
+  const note = {
+    content: body.content,
+    important: body.important
+  }
+
+  Note.findByIdAndUpdate(req.params.id, note, { new: true })
+    .then(updatedNote => {
+      console.log(updatedNote)
+      res.json(updatedNote)
+    })
+    .catch(error => next(error))
 });
 
-app.put('api/persons/:id', (req, res) => {
+app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body;
-  console.log(res.body);
-  console.log(body);
+  
+  const contact = {
+    name: body.name,
+    phone: body.phone
+  }
+
+  Contact.findByIdAndUpdate(req.params.id, contact, { new: true})
+    .then(updatedContact => {
+      console.log(updatedContact)
+      res.json(updatedContact)
+    })
+    .catch(error => next(error))
 });
 
-app.delete('/api/notes/:id', (request, response) => {
-  const id = Number(request.params.id);
-  notes = notes.filter((note) => note.id !== id);
-  response.status(204).end();
+app.delete('/api/notes/:id', (req, res, next) => {
+  Note.findByIdAndRemove(req.params.id)
+    .then(() => {
+      res.status(204).end();
+    })
+    .catch((error) => next(error));
 });
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' });
+};
+app.use(unknownEndpoint);
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message);
+
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformed id' });
+  }
+
+  next(error);
+};
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
