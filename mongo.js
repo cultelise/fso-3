@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const mongoose = require('mongoose');
 
 if (process.argv.length < 5 && process.argv.length !== 3) {
@@ -23,7 +24,7 @@ const contactSchema = new mongoose.Schema({
 const Contact = mongoose.model('Contact', contactSchema);
 
 if (name === undefined) {
-  mongoose.connect(url).then((result) => {
+  mongoose.connect(url).then(() => {
     console.log('connected');
 
     Contact.find({}).then((result) => {
@@ -36,7 +37,7 @@ if (name === undefined) {
 } else {
   mongoose
     .connect(url)
-    .then((result) => {
+    .then(() => {
       console.log('connected');
       const contact = new Contact({
         name: name,

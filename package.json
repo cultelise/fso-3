@@ -11,7 +11,8 @@
     "deploy": "fly deploy",
     "deploy:full": "npm run build:ui && npm run deploy",
     "logs:prod": "fly logs",
-    "build:dev": "npm run build:ui && npm run dev"
+    "build:dev": "npm run build:ui && npm run dev",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
     "mongoose": "^6.7.4"
   },
   "devDependencies": {
+    "eslint": "^8.28.0",
     "nodemon": "^2.0.20"
   }
 }

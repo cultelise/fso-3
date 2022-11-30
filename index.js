@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('build'));
 
-
 app.get('/api/persons', (req, res) => {
   Contact.find({}).then((contact) => {
     res.json(contact);
@@ -18,12 +17,12 @@ app.get('/api/persons', (req, res) => {
 });
 
 app.get('/info', (req, res) => {
-    Contact.find({}).then((contact) => {
-      console.log(contact)
-      res.send(
-        `<h3>Phonebook has info for ${contact.length} people.</h3>
+  Contact.find({}).then((contact) => {
+    console.log(contact);
+    res.send(
+      `<h3>Phonebook has info for ${contact.length} people.</h3>
        <p>${new Date()}</p>`
-      );
+    );
   });
 });
 
@@ -67,7 +66,7 @@ app.delete('/api/persons/:id', (req, res) => {
 //   return phoneNumber;
 // };
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const body = req.body;
 
   const contact = new Contact({
@@ -84,7 +83,7 @@ app.post('/api/persons', (req, res) => {
       console.log(`added ${contact.name} to phonebook.`);
       res.json(savedContact);
     })
-    .catch((err) => console.log(err));
+    .catch((err) => next(err));
 
   // if (persons.find((p) => p.name === person.name)) {
   //   return res.status(400).json('Person already exists in phonebook.').end();
@@ -122,7 +121,7 @@ app.get('/api/notes/:id', (req, res, next) => {
     .catch((error) => next(error));
 });
 
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', (req, res, next) => {
   const body = req.body;
   if (!body.content) {
     return res.status(400).json({
@@ -136,44 +135,53 @@ app.post('/api/notes', (req, res) => {
     date: new Date(),
   });
 
-  note.save().then((savedNote) => {
-    res.json(savedNote);
-  });
+  note
+    .save()
+    .then((savedNote) => {
+      res.json(savedNote);
+    })
+    .catch((error) => next(error));
 });
 
 app.put('/api/notes/:id', (req, res, next) => {
   const body = req.body;
-  console.log(body)
 
   const note = {
     content: body.content,
-    important: body.important
-  }
+    important: body.important,
+  };
 
-  Note.findByIdAndUpdate(req.params.id, note, { new: true })
-    .then(updatedNote => {
-      console.log(updatedNote)
-      res.json(updatedNote)
+  Note.findByIdAndUpdate(req.params.id, note, {
+    new: true,
+    runValidators: true,
+    context: 'query',
+  })
+    .then((updatedNote) => {
+      res.json(updatedNote);
     })
-    .catch(error => next(error))
+    .catch((error) => next(error));
 });
 
 app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body;
-  
+
   const contact = {
     name: body.name,
-    phone: body.phone
-  }
+    phone: body.phone,
+    important: true,
+  };
   if (body.phone !== Number) {
-    throw new Error('Number must consist only of numerals.')
+    throw new Error('Number must consist only of numerals.');
   }
-  Contact.findByIdAndUpdate(req.params.id, contact, { new: true})
-    .then(updatedContact => {
-      console.log(updatedContact)
-      res.json(updatedContact)
+  Contact.findByIdAndUpdate(req.params.id, contact, {
+    new: true,
+    runValidators: true,
+    context: 'query',
+  })
+    .then((updatedContact) => {
+      res.json(updatedContact);
     })
-    .catch(error => next(error))
+    .catch((error) => next(error));
 });
 
 app.delete('/api/notes/:id', (req, res, next) => {
@@ -194,12 +202,15 @@ const errorHandler = (error, req, res, next) => {
 
   if (error.name === 'CastError') {
     return res.status(400).send({ error: 'malformed id' });
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message });
   }
 
   next(error);
 };
 app.use(errorHandler);
 
+// eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
