@@ -1,8 +1,7 @@
-require('dotenv').config();
+const config = require('./utils/config');
 const mongoose = require('mongoose');
 
-// eslint-disable-next-line no-undef
-const url = process.env.MONGODB_URI;
+const url = config.MONGODB_URI;
 
 console.log('connecting to', url);
 

@@ -1,4 +1,6 @@
-require('dotenv').config;
+const logger = require('./utils/logger');
+const config = require('./utils/config');
+
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -18,7 +20,7 @@ app.get('/api/persons', (req, res) => {
 
 app.get('/info', (req, res) => {
   Contact.find({}).then((contact) => {
-    console.log(contact);
+    logger.info(contact);
     res.send(
       `<h3>Phonebook has info for ${contact.length} people.</h3>
        <p>${new Date()}</p>`
@@ -38,7 +40,7 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (req, res) => {
   Contact.findByIdAndRemove(req.params.id).then((contact) => {
-    console.log(`${contact.name} deleted.`);
+    logger.info(`${contact.name} deleted.`);
     res.status(204).end();
     // Contact.find({}).then((contact) => {
     //   res.json(contact);
@@ -79,8 +81,8 @@ app.post('/api/persons', (req, res, next) => {
   contact
     .save()
     .then((savedContact) => {
-      console.log(savedContact);
-      console.log(`added ${contact.name} to phonebook.`);
+      logger.info(savedContact);
+      logger.info(`added ${contact.name} to phonebook.`);
       res.json(savedContact);
     })
     .catch((err) => next(err));
@@ -198,7 +200,7 @@ const unknownEndpoint = (req, res) => {
 app.use(unknownEndpoint);
 
 const errorHandler = (error, req, res, next) => {
-  console.error(error.message);
+  logger.error(error.message);
 
   if (error.name === 'CastError') {
     return res.status(400).send({ error: 'malformed id' });
@@ -210,8 +212,6 @@ const errorHandler = (error, req, res, next) => {
 };
 app.use(errorHandler);
 
-// eslint-disable-next-line no-undef
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(config.PORT, () => {
+  logger.info(`Server running on port ${config.PORT}`);
 });
