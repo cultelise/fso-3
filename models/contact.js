@@ -1,18 +1,4 @@
-const config = require('./utils/config');
 const mongoose = require('mongoose');
-
-const url = config.MONGODB_URI;
-
-console.log('connecting to', url);
-
-mongoose
-  .connect(url)
-  .then(() => {
-    console.log('connected to MongoDB');
-  })
-  .catch((error) => {
-    console.log('error connecting to MongoDB:', error.message);
-  });
 
 const contactSchema = new mongoose.Schema({
   name: {
@@ -29,7 +15,8 @@ const contactSchema = new mongoose.Schema({
         return /\d{3}-\d{3}-\d{4}/.test(v);
       },
       message: (props) =>
-        `${props.value} is not a valid phone number! "xxx-xxx-xxxx")`,
+        `${props.value} is not a valid phone number! "xxx-xxx-xxxx")
+---`,
     },
   },
   date: Date,
