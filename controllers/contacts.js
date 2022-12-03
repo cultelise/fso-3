@@ -40,6 +40,7 @@ contactsRouter.post('/', async (req, res) => {
 
 contactsRouter.put('/:id', async (req, res) => {
   const body = req.body;
+  console.log('req.body...', req.body);
 
   const contact = {
     name: body.name,
@@ -56,6 +57,7 @@ contactsRouter.put('/:id', async (req, res) => {
       context: 'query',
     }
   );
+
   res.json(updatedContact);
 });
 

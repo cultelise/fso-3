@@ -4,92 +4,159 @@ const app = require('../app');
 const Note = require('../models/note');
 const api = supertest(app);
 const helper = require('./test_helper');
+const bcrypt = require('bcrypt');
+const User = require('../models/user');
 
-beforeEach(async () => {
-  await Note.deleteMany({});
+describe('when there is initially one user in db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
 
-  const noteObjects = helper.initialNotes.map((note) => new Note(note));
-  const promiseArray = noteObjects.map((note) => note.save());
-  await Promise.all(promiseArray);
+    const passwordHash = await bcrypt.hash('sekret', 10);
+    const user = new User({ username: 'root', passwordHash });
+
+    await user.save();
+  });
+
+  test('creation succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'mluukkai',
+      name: 'Matti Luukkainen',
+      password: 'salainen',
+    };
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length + 1);
+
+    const usernames = usersAtEnd.map((u) => u.username);
+    expect(usernames).toContain(newUser.username);
+  });
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain('username must be unique');
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toEqual(usersAtStart);
+  });
 });
 
-test('notes are returned as json', async () => {
-  const notes = await api.get('/api/notes');
-  expect(notes.status).toBe(200);
-  expect(notes.type).toBe('application/json');
-});
+describe('note tests', () => {
+  beforeEach(async () => {
+    await Note.deleteMany({});
 
-test('all notes are returned', async () => {
-  const response = await api.get('/api/notes');
+    const noteObjects = helper.initialNotes.map((note) => new Note(note));
+    const promiseArray = noteObjects.map((note) => note.save());
+    await Promise.all(promiseArray);
+  });
 
-  expect(response.body).toHaveLength(helper.initialNotes.length);
-});
+  describe('When some notes are already saved', () => {
+    test('notes are returned as json', async () => {
+      const notes = await api.get('/api/notes');
+      expect(notes.status).toBe(200);
+      expect(notes.type).toBe('application/json');
+    });
 
-test('a specific note is within the returned notes', async () => {
-  const response = await api.get('/api/notes');
+    test('all notes are returned', async () => {
+      const response = await api.get('/api/notes');
 
-  const contents = response.body.map((r) => r.content);
-  expect(contents).toContain('I Love Elise');
-});
+      expect(response.body).toHaveLength(helper.initialNotes.length);
+    });
 
-test('a valid note can be added', async () => {
-  const newNote = {
-    content: 'async/await simplifies making async calls',
-    important: true,
-  };
+    test('a specific note is within the returned notes', async () => {
+      const response = await api.get('/api/notes');
 
-  await api
-    .post('/api/notes')
-    .send(newNote)
-    .expect(201)
-    .expect('Content-Type', /application\/json/);
+      const contents = response.body.map((r) => r.content);
+      expect(contents).toContain('I Love Elise');
+    });
+  });
 
-  const notesAtEnd = await helper.notesInDb();
-  expect(notesAtEnd).toHaveLength(helper.initialNotes.length + 1);
+  describe('addition of new note', () => {
+    test('a valid note can be added', async () => {
+      const newNote = {
+        content: 'async/await simplifies making async calls',
+        important: true,
+      };
 
-  const contents = notesAtEnd.map((r) => r.content);
-  expect(contents).toContain('async/await simplifies making async calls');
-});
+      await api
+        .post('/api/notes')
+        .send(newNote)
+        .expect(201)
+        .expect('Content-Type', /application\/json/);
 
-test('note without content is not added', async () => {
-  const newNote = {
-    important: true,
-  };
+      const notesAtEnd = await helper.notesInDb();
+      expect(notesAtEnd).toHaveLength(helper.initialNotes.length + 1);
 
-  await api.post('/api/notes').send(newNote).expect(400);
+      const contents = notesAtEnd.map((r) => r.content);
+      expect(contents).toContain('async/await simplifies making async calls');
+    });
 
-  const notesAtEnd = await helper.notesInDb();
-  expect(notesAtEnd).toHaveLength(helper.initialNotes.length);
-});
+    test('note without content is not added', async () => {
+      const newNote = {
+        important: true,
+      };
 
-test('a specific note can be viewed', async () => {
-  const notesAtStart = await helper.notesInDb();
+      await api.post('/api/notes').send(newNote).expect(400);
 
-  const noteToView = notesAtStart[0];
+      const notesAtEnd = await helper.notesInDb();
+      expect(notesAtEnd).toHaveLength(helper.initialNotes.length);
+    });
+  });
 
-  const resultNote = await api
-    .get(`/api/notes/${noteToView.id}`)
-    .expect(200)
-    .expect('Content-Type', /application\/json/);
+  describe('viewing notes', () => {
+    test('a specific note can be viewed', async () => {
+      const notesAtStart = await helper.notesInDb();
 
-  const processedNoteToView = JSON.parse(JSON.stringify(noteToView));
+      const noteToView = notesAtStart[0];
 
-  expect(resultNote.body).toEqual(processedNoteToView);
-});
+      const resultNote = await api
+        .get(`/api/notes/${noteToView.id}`)
+        .expect(200)
+        .expect('Content-Type', /application\/json/);
 
-test('a note can be deleted', async () => {
-  const notesAtStart = await helper.notesInDb();
-  const noteToDelete = notesAtStart[0];
+      const processedNoteToView = JSON.parse(JSON.stringify(noteToView));
 
-  await api.delete(`/api/notes/${noteToDelete.id}`).expect(204);
+      expect(resultNote.body).toEqual(processedNoteToView);
+    });
+  });
 
-  const notesAtEnd = await helper.notesInDb();
+  describe('deletion of note', () => {
+    test('a note can be deleted', async () => {
+      const notesAtStart = await helper.notesInDb();
+      const noteToDelete = notesAtStart[0];
+      console.log(noteToDelete);
 
-  expect(notesAtEnd).toHaveLength(helper.initialNotes.length - 1);
+      await api.delete(`/api/notes/${noteToDelete.id}`).expect(204);
 
-  const contents = notesAtEnd.map((r) => r.content);
+      const notesAtEnd = await helper.notesInDb();
 
-  expect(contents).not.toContain(noteToDelete.content);
+      expect(notesAtEnd).toHaveLength(helper.initialNotes.length - 1);
+
+      const contents = notesAtEnd.map((r) => r.content);
+
+      expect(contents).not.toContain(noteToDelete.content);
+    });
+  });
 });
 
 afterAll(() => {
